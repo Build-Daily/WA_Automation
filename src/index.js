@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 
+const { syncDatabase } = require('./models');
 const webhookRoutes = require('./routes/webhook');
 
 const app = express();
@@ -13,6 +14,9 @@ app.use('/webhook', webhookRoutes);
 app.get('/', (req, res) => res.send('Clinic WhatsApp Backend Running'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+// Start server + connect DB
+app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    await syncDatabase();
 });
