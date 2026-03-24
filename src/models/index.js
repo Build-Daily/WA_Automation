@@ -1,36 +1,41 @@
 const sequelize = require('../config/database');
+
 const Clinic = require('./Clinic');
 const Patient = require('./Patient');
 const Message = require('./Message');
 const Appointment = require('./Appointment');
+const Session = require('./Session');
 
-// Relationships
+// ─── Associations ──────────────────────────────────────────────────────────
+
+// Clinic has many patients, messages, appointments, sessions
 Clinic.hasMany(Patient, { foreignKey: 'clinicId' });
+Clinic.hasMany(Message, { foreignKey: 'clinicId' });
+Clinic.hasMany(Appointment, { foreignKey: 'clinicId' });
+Clinic.hasMany(Session, { foreignKey: 'clinicId' });
+
+// Patient belongs to clinic
 Patient.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-Clinic.hasMany(Message, { foreignKey: 'clinicId' });
+// Patient has many messages and appointments
+Patient.hasMany(Message, { foreignKey: 'patientId', as: 'messages' });
+Patient.hasMany(Appointment, { foreignKey: 'patientId', as: 'appointments' });
+
+// Message and Appointment belong to Patient and Clinic
+Message.belongsTo(Patient, { foreignKey: 'patientId' });
 Message.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-Patient.hasMany(Message, { foreignKey: 'patientId' });
-Message.belongsTo(Patient, { foreignKey: 'patientId' });
-
-Clinic.hasMany(Appointment, { foreignKey: 'clinicId' });
+Appointment.belongsTo(Patient, { foreignKey: 'patientId' });
 Appointment.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-Patient.hasMany(Appointment, { foreignKey: 'patientId' });
-Appointment.belongsTo(Patient, { foreignKey: 'patientId' });
+// Session belongs to Clinic (no Patient FK — we look up by phone directly)
+Session.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-// Sync all models to database
+// ─── Sync ──────────────────────────────────────────────────────────────────
+// alter: true safely adds new columns/tables without dropping existing data
 const syncDatabase = async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('✅ Database connected successfully');
-
-        await sequelize.sync({ alter: true }); // Creates tables if not exist
-        console.log('✅ All tables synced');
-    } catch (error) {
-        console.error('❌ Database connection failed:', error);
-    }
+    await sequelize.sync({ alter: true });
+    console.log('Database synced successfully');
 };
 
 module.exports = {
@@ -39,5 +44,6 @@ module.exports = {
     Clinic,
     Patient,
     Message,
-    Appointment
+    Appointment,
+    Session,
 };

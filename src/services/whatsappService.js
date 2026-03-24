@@ -1,57 +1,75 @@
 const axios = require('axios');
-require('dotenv').config();
 
-const sendMessage = async (to, message) => {
-    try {
-        const response = await axios.post(
-            `https://graph.facebook.com/v22.0/${process.env.PHONE_NUMBER_ID}/messages`,
-            {
-                messaging_product: 'whatsapp',
-                to: to,
-                type: 'text',
-                text: { body: message }
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-        console.log(`✅ Message sent to ${to}`);
-        return response.data;
-    } catch (error) {
-        console.error('❌ Send failed:', error.response?.data);
-        throw error;
-    }
+const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID || '1076899628830520';
+const META_API_VERSION = 'v19.0';
+const BASE_URL = `https://graph.facebook.com/${META_API_VERSION}/${PHONE_NUMBER_ID}/messages`;
+
+// ─── Get auth headers ──────────────────────────────────────────────────────
+const getHeaders = () => ({
+    Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+    'Content-Type': 'application/json',
+});
+
+// ─── Send a plain text message ─────────────────────────────────────────────
+const sendTextMessage = async (to, text) => {
+    const response = await axios.post(BASE_URL, {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: 'text',
+        text: { body: text },
+    }, { headers: getHeaders() });
+
+    return response.data;
 };
 
-// Send template message (for reminders - requires approved template)
-const sendTemplateMessage = async (to, templateName, languageCode = 'en_US') => {
-    try {
-        const response = await axios.post(
-            `https://graph.facebook.com/v22.0/${process.env.PHONE_NUMBER_ID}/messages`,
-            {
-                messaging_product: 'whatsapp',
-                to: to,
-                type: 'template',
-                template: {
-                    name: templateName,
-                    language: { code: languageCode }
-                }
+// ─── Send interactive list message (renders as a tappable menu in WhatsApp) ─
+// This is the recommended way for menus — much better UX than plain text
+const sendListMessage = async (to, { header, body, footer, buttonLabel, sections }) => {
+    const response = await axios.post(BASE_URL, {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: 'interactive',
+        interactive: {
+            type: 'list',
+            header: { type: 'text', text: header },
+            body: { text: body },
+            footer: { text: footer || '' },
+            action: {
+                button: buttonLabel || 'Select option',
+                sections,
             },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-        return response.data;
-    } catch (error) {
-        console.error('❌ Template send failed:', error.response?.data);
-        throw error;
-    }
+        },
+    }, { headers: getHeaders() });
+
+    return response.data;
 };
 
-module.exports = { sendMessage, sendTemplateMessage };
+// ─── Send quick reply buttons (max 3 buttons) ──────────────────────────────
+const sendButtonMessage = async (to, { body, buttons }) => {
+    const response = await axios.post(BASE_URL, {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: 'interactive',
+        interactive: {
+            type: 'button',
+            body: { text: body },
+            action: {
+                buttons: buttons.map((btn, i) => ({
+                    type: 'reply',
+                    reply: { id: btn.id || `btn_${i}`, title: btn.title },
+                })),
+            },
+        },
+    }, { headers: getHeaders() });
+
+    return response.data;
+};
+
+module.exports = {
+    sendTextMessage,
+    sendListMessage,
+    sendButtonMessage,
+};

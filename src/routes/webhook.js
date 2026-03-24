@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { verifyWebhook, receiveMessage } = require('../controllers/whatsappController');
+const { verifyWebhook, handleIncomingMessage } = require('../controllers/whatsappController');
 
 // Meta verification handshake
 router.get('/', verifyWebhook);
 
 // Incoming messages from WhatsApp
-router.post('/', receiveMessage);
+router.post('/', handleIncomingMessage);
 
 module.exports = router;
