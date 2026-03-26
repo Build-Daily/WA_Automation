@@ -1,0 +1,290 @@
+[
+  {
+    "id": 1,
+    "name": "Morning 1",
+    "day": "Monday",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 2,
+    "name": "Morning 2",
+    "day": "Monday",
+    "startTime": "10:00",
+    "endTime": "10:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 3,
+    "name": "Morning 3",
+    "day": "Monday",
+    "startTime": "11:00",
+    "endTime": "11:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 4,
+    "name": "Afternoon 1",
+    "day": "Monday",
+    "startTime": "14:00",
+    "endTime": "14:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 5,
+    "name": "Afternoon 2",
+    "day": "Monday",
+    "startTime": "15:00",
+    "endTime": "15:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 6,
+    "name": "Afternoon 3",
+    "day": "Monday",
+    "startTime": "16:00",
+    "endTime": "16:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 7,
+    "name": "Morning 1",
+    "day": "Tuesday",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 8,
+    "name": "Morning 2",
+    "day": "Tuesday",
+    "startTime": "10:00",
+    "endTime": "10:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 9,
+    "name": "Morning 3",
+    "day": "Tuesday",
+    "startTime": "11:00",
+    "endTime": "11:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 10,
+    "name": "Afternoon 1",
+    "day": "Tuesday",
+    "startTime": "14:00",
+    "endTime": "14:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 11,
+    "name": "Afternoon 2",
+    "day": "Tuesday",
+    "startTime": "15:00",
+    "endTime": "15:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 12,
+    "name": "Afternoon 3",
+    "day": "Tuesday",
+    "startTime": "16:00",
+    "endTime": "16:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 13,
+    "name": "Morning 1",
+    "day": "Wednesday",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 14,
+    "name": "Morning 2",
+    "day": "Wednesday",
+    "startTime": "10:00",
+    "endTime": "10:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 15,
+    "name": "Morning 3",
+    "day": "Wednesday",
+    "startTime": "11:00",
+    "endTime": "11:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 16,
+    "name": "Afternoon 1",
+    "day": "Wednesday",
+    "startTime": "14:00",
+    "endTime": "14:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 17,
+    "name": "Afternoon 2",
+    "day": "Wednesday",
+    "startTime": "15:00",
+    "endTime": "15:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 18,
+    "name": "Afternoon 3",
+    "day": "Wednesday",
+    "startTime": "16:00",
+    "endTime": "16:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 19,
+    "name": "Morning 1",
+    "day": "Thursday",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 20,
+    "name": "Morning 2",
+    "day": "Thursday",
+    "startTime": "10:00",
+    "endTime": "10:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 21,
+    "name": "Morning 3",
+    "day": "Thursday",
+    "startTime": "11:00",
+    "endTime": "11:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 22,
+    "name": "Afternoon 1",
+    "day": "Thursday",
+    "startTime": "14:00",
+    "endTime": "14:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 23,
+    "name": "Afternoon 2",
+    "day": "Thursday",
+    "startTime": "15:00",
+    "endTime": "15:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 24,
+    "name": "Afternoon 3",
+    "day": "Thursday",
+    "startTime": "16:00",
+    "endTime": "16:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 25,
+    "name": "Morning 1",
+    "day": "Friday",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 26,
+    "name": "Morning 2",
+    "day": "Friday",
+    "startTime": "10:00",
+    "endTime": "10:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 27,
+    "name": "Morning 3",
+    "day": "Friday",
+    "startTime": "11:00",
+    "endTime": "11:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 28,
+    "name": "Afternoon 1",
+    "day": "Friday",
+    "startTime": "14:00",
+    "endTime": "14:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 29,
+    "name": "Afternoon 2",
+    "day": "Friday",
+    "startTime": "15:00",
+    "endTime": "15:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 30,
+    "name": "Afternoon 3",
+    "day": "Friday",
+    "startTime": "16:00",
+    "endTime": "16:30",
+    "maxBookings": 1,
+    "isActive": true
+  },
+  {
+    "id": 31,
+    "name": "Morning ",
+    "day": "Friday",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "maxBookings": "5",
+    "isActive": true
+  },
+  {
+    "id": 32,
+    "name": "09:00–09:30",
+    "day": "Sunday",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "maxBookings": "3",
+    "isActive": true
+  }
+]

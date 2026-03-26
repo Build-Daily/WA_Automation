@@ -2,38 +2,28 @@ const { Session, Patient, Appointment, Clinic, Message } = require('../models');
 const { sendTextMessage, sendListMessage, sendButtonMessage } = require('../services/whatsappService');
 const { Op } = require('sequelize');
 
-// ─── Hardcoded clinic ID for now (replace with dynamic lookup later) ───────
 const DEFAULT_CLINIC_ID = process.env.DEFAULT_CLINIC_ID;
 
-// ─── Main entry point — called by webhook for every incoming message ───────
+// ─── Main entry point ──────────────────────────────────────────────────────
 const handleIncomingMessage = async (req, res) => {
     try {
         const body = req.body;
-
-        // Acknowledge Meta immediately — must respond 200 fast or Meta retries
         res.sendStatus(200);
 
-        const entry = body?.entry?.[0];
-        const change = entry?.changes?.[0];
-        const value = change?.value;
-        const messages = value?.messages;
-
+        const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
         if (!messages || messages.length === 0) return;
 
         const message = messages[0];
-        const fromPhone = message.from;   // e.g. "919876543210"
-        const messageType = message.type;   // 'text' or 'interactive'
+        const fromPhone = message.from;
+        const messageType = message.type;
 
-        // Extract text — handles both plain text and interactive button/list replies
         let incomingText = '';
         if (messageType === 'text') {
             incomingText = message.text?.body?.trim() || '';
         } else if (messageType === 'interactive') {
-            // List reply
             if (message.interactive?.type === 'list_reply') {
                 incomingText = message.interactive.list_reply?.id || '';
             }
-            // Button reply
             if (message.interactive?.type === 'button_reply') {
                 incomingText = message.interactive.button_reply?.id || '';
             }
@@ -41,13 +31,8 @@ const handleIncomingMessage = async (req, res) => {
 
         console.log(`[Webhook] From: ${fromPhone} | Message: "${incomingText}"`);
 
-        // Save incoming message to DB
         await saveMessage(fromPhone, incomingText, 'inbound');
-
-        // Get or create session for this phone number
         const session = await getOrCreateSession(fromPhone);
-
-        // Route based on current session step
         await routeMessage(fromPhone, incomingText, session);
 
     } catch (err) {
@@ -55,92 +40,78 @@ const handleIncomingMessage = async (req, res) => {
     }
 };
 
-// ─── Router — decides what to do based on session step ────────────────────
+// ─── Router ────────────────────────────────────────────────────────────────
 const routeMessage = async (fromPhone, text, session) => {
-    const step = session.step;
-
-    // Always allow 'menu', '0', 'hi', 'hello' to reset to main menu
     const resetTriggers = ['0', 'menu', 'hi', 'hello', 'start', 'helo', 'hey'];
     if (resetTriggers.includes(text.toLowerCase())) {
         return await sendMainMenu(fromPhone, session);
     }
 
-    switch (step) {
-        case 'main_menu':
-            return await handleMainMenuSelection(fromPhone, text, session);
-
-        case 'awaiting_date':
-            return await handleDateInput(fromPhone, text, session);
-
-        case 'awaiting_time':
-            return await handleTimeInput(fromPhone, text, session);
-
-        case 'confirm_booking':
-            return await handleBookingConfirmation(fromPhone, text, session);
-
-        case 'cancel_confirm':
-            return await handleCancelConfirmation(fromPhone, text, session);
-
-        case 'reschedule_pick':
-            return await handleReschedulePick(fromPhone, text, session);
-
-        default:
-            return await sendMainMenu(fromPhone, session);
+    switch (session.step) {
+        case 'main_menu': return await handleMainMenuSelection(fromPhone, text, session);
+        case 'awaiting_name': return await handleNameInput(fromPhone, text, session);
+        case 'awaiting_date': return await handleDateInput(fromPhone, text, session);
+        case 'awaiting_time': return await handleTimeInput(fromPhone, text, session);
+        case 'confirm_booking': return await handleBookingConfirmation(fromPhone, text, session);
+        case 'cancel_confirm': return await handleCancelConfirmation(fromPhone, text, session);
+        case 'reschedule_pick': return await handleReschedulePick(fromPhone, text, session);
+        default: return await sendMainMenu(fromPhone, session);
     }
 };
 
-// ─── MAIN MENU ─────────────────────────────────────────────────────────────
+// ─── Main menu ─────────────────────────────────────────────────────────────
 const sendMainMenu = async (fromPhone, session) => {
     await updateSession(session, 'main_menu', {});
-
     await sendListMessage(fromPhone, {
         header: 'Welcome!',
         body: 'How can we help you today? Please select an option below.',
         footer: 'Reply 0 anytime to return to this menu.',
         buttonLabel: 'View options',
-        sections: [
-            {
-                title: 'Appointments',
-                rows: [
-                    { id: 'opt_1', title: 'Book appointment', description: 'Schedule a new visit' },
-                    { id: 'opt_2', title: 'Reschedule appointment', description: 'Change your existing booking' },
-                    { id: 'opt_3', title: 'Cancel appointment', description: 'Cancel an existing booking' },
-                    { id: 'opt_4', title: 'Check available slots', description: 'See what times are open' },
-                ],
-            },
-        ],
+        sections: [{
+            title: 'Appointments',
+            rows: [
+                { id: 'opt_1', title: 'Book appointment', description: 'Schedule a new visit' },
+                { id: 'opt_2', title: 'Reschedule appointment', description: 'Change your existing booking' },
+                { id: 'opt_3', title: 'Cancel appointment', description: 'Cancel an existing booking' },
+                { id: 'opt_4', title: 'Check available slots', description: 'See what times are open' },
+            ],
+        }],
     });
 };
 
-// ─── HANDLE MAIN MENU SELECTION ────────────────────────────────────────────
+// ─── Menu selection handler ────────────────────────────────────────────────
 const handleMainMenuSelection = async (fromPhone, text, session) => {
     const choice = text.toLowerCase();
 
     if (choice === 'opt_1' || choice === '1') {
-        await updateSession(session, 'awaiting_date', {});
+        await updateSession(session, 'awaiting_name', {});
         await sendTextMessage(fromPhone,
-            `Great! Let's book an appointment.\n\nPlease enter your preferred date.\nExample: *tomorrow*, *Monday*, or *25 March*`
+            `Great! Let's book an appointment.\n\nFirst, please tell us your *full name*:`
         );
 
     } else if (choice === 'opt_2' || choice === '2') {
         const appointment = await getUpcomingAppointment(fromPhone);
         if (!appointment) {
-            await sendTextMessage(fromPhone, `We couldn't find any upcoming appointments for your number.\n\nReply *0* to go back to the menu.`);
+            await sendTextMessage(fromPhone,
+                `We couldn't find any upcoming appointments for your number.\n\nReply *0* to go back to the menu.`
+            );
         } else {
             await updateSession(session, 'reschedule_pick', { appointmentId: appointment.id });
             await sendTextMessage(fromPhone,
-                `Your current appointment is on *${formatDate(appointment.scheduledAt)}*.\n\nPlease enter the new date you'd like to reschedule to:`
+                `Your current appointment is on *${formatDate(appointment.appointmentDate)}*.\n\nPlease enter the new date you'd like to reschedule to:`
             );
         }
 
     } else if (choice === 'opt_3' || choice === '3') {
         const appointment = await getUpcomingAppointment(fromPhone);
         if (!appointment) {
-            await sendTextMessage(fromPhone, `We couldn't find any upcoming appointments for your number.\n\nReply *0* to go back to the menu.`);
+            await sendTextMessage(fromPhone,
+                `We couldn't find any upcoming appointments for your number.\n\nReply *0* to go back to the menu.`
+            );
         } else {
             await updateSession(session, 'cancel_confirm', { appointmentId: appointment.id });
             await sendButtonMessage(fromPhone, {
-                body: `Your appointment is on *${formatDate(appointment.scheduledAt)}*.\n\nAre you sure you want to cancel it?`,
+                body: `Your appointment is on *${formatDate(appointment.appointmentDate)}*.\n\nAre you sure you want to cancel it?`,
                 buttons: [
                     { id: 'cancel_yes', title: 'Yes, cancel it' },
                     { id: 'cancel_no', title: 'No, keep it' },
@@ -157,20 +128,31 @@ const handleMainMenuSelection = async (fromPhone, text, session) => {
     }
 };
 
-// ─── BOOKING FLOW ──────────────────────────────────────────────────────────
+// ─── Booking flow ──────────────────────────────────────────────────────────
+const handleNameInput = async (fromPhone, text, session) => {
+    await updateSession(session, 'awaiting_date', { name: text });
+    await sendTextMessage(fromPhone,
+        `Nice to meet you, *${text}*! 👋\n\nPlease enter your preferred date.\nExample: *tomorrow*, *Monday*, or *25 March*`
+    );
+};
+
 const handleDateInput = async (fromPhone, text, session) => {
-    // For now we store whatever they type as the date string.
-    // Later you can add date parsing (e.g. with day.js or chrono-node).
-    await updateSession(session, 'awaiting_time', { date: text });
+    const invalidInputs = ['opt_1', 'opt_2', 'opt_3', 'opt_4', '1', '2', '3', '4'];
+    if (invalidInputs.includes(text.toLowerCase())) {
+        await sendTextMessage(fromPhone,
+            `Please enter a date.\nExample: *tomorrow*, *Monday*, or *25 March*`
+        );
+        return;
+    }
 
-    // Fetch available time slots for that date from DB
+    await updateSession(session, 'awaiting_time', { ...session.data, date: text });
+
     const slots = await getAvailableSlots(text);
-
     if (slots.length === 0) {
         await sendTextMessage(fromPhone,
             `Sorry, there are no available slots on *${text}*.\n\nPlease try another date, or reply *0* to go back to the menu.`
         );
-        await updateSession(session, 'awaiting_date', {});
+        await updateSession(session, 'awaiting_date', { ...session.data });
         return;
     }
 
@@ -203,28 +185,30 @@ const handleTimeInput = async (fromPhone, text, session) => {
 
 const handleBookingConfirmation = async (fromPhone, text, session) => {
     if (text === 'book_yes') {
-        const patient = await findOrCreatePatient(fromPhone);
-        const scheduledAt = parseDatetime(session.data.date, session.data.time);
+        const bookingDate = session.data.date;
+        const bookingTime = session.data.time;
+        const bookingName = session.data.name;
+
+        const patient = await findOrCreatePatient(fromPhone, bookingName);
 
         await Appointment.create({
             patientId: patient.id,
             clinicId: DEFAULT_CLINIC_ID,
-            scheduledAt,
+            appointmentDate: parseDatetime(bookingDate, bookingTime),
             status: 'confirmed',
-            notes: `Booked via WhatsApp`,
+            notes: 'Booked via WhatsApp',
         });
 
         await updateSession(session, 'main_menu', {});
         await sendTextMessage(fromPhone,
-            `Your appointment is confirmed!\n\n📅 *${session.data.date}* at *${session.data.time}*\n\nWe'll send you a reminder before your visit.\n\nReply *0* anytime to return to the menu.`
+            `Hi *${bookingName}*! Your appointment is confirmed! 🎉\n\n📅 *${bookingDate}* at *${bookingTime}*\n\nWe'll send you a reminder before your visit.\n\nReply *0* anytime to return to the menu.`
         );
-
     } else {
         await sendMainMenu(fromPhone, session);
     }
 };
 
-// ─── CANCEL FLOW ───────────────────────────────────────────────────────────
+// ─── Cancel flow ───────────────────────────────────────────────────────────
 const handleCancelConfirmation = async (fromPhone, text, session) => {
     if (text === 'cancel_yes') {
         await Appointment.update(
@@ -233,15 +217,15 @@ const handleCancelConfirmation = async (fromPhone, text, session) => {
         );
         await updateSession(session, 'main_menu', {});
         await sendTextMessage(fromPhone,
-            `Your appointment has been cancelled.\n\nIf you'd like to book a new appointment, reply *0* to return to the menu.`
+            `Your appointment has been cancelled.\n\nIf you'd like to book a new one, reply *0* to return to the menu.`
         );
     } else {
-        await sendTextMessage(fromPhone, `No problem! Your appointment is kept.`);
         await updateSession(session, 'main_menu', {});
+        await sendTextMessage(fromPhone, `No problem! Your appointment is kept.\n\nReply *0* to return to the menu.`);
     }
 };
 
-// ─── RESCHEDULE FLOW ───────────────────────────────────────────────────────
+// ─── Reschedule flow ───────────────────────────────────────────────────────
 const handleReschedulePick = async (fromPhone, text, session) => {
     const slots = await getAvailableSlots(text);
 
@@ -252,12 +236,11 @@ const handleReschedulePick = async (fromPhone, text, session) => {
         return;
     }
 
-    // For simplicity: pick first available slot on the new date
     const newSlot = slots[0];
-    const scheduledAt = parseDatetime(text, newSlot);
+    const newDate = parseDatetime(text, newSlot);
 
     await Appointment.update(
-        { scheduledAt, status: 'rescheduled' },
+        { appointmentDate: newDate, status: 'rescheduled' },
         { where: { id: session.data.appointmentId } }
     );
 
@@ -267,9 +250,8 @@ const handleReschedulePick = async (fromPhone, text, session) => {
     );
 };
 
-// ─── CHECK SLOTS ───────────────────────────────────────────────────────────
+// ─── Check slots ───────────────────────────────────────────────────────────
 const handleCheckSlots = async (fromPhone, session) => {
-    // Show slots for today and tomorrow
     const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
     const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
 
@@ -285,9 +267,8 @@ const handleCheckSlots = async (fromPhone, session) => {
     await sendTextMessage(fromPhone, msg);
 };
 
-// ─── SESSION HELPERS ───────────────────────────────────────────────────────
+// ─── Session helpers ───────────────────────────────────────────────────────
 const getOrCreateSession = async (phone) => {
-    // Check for a valid (non-expired) session
     let session = await Session.findOne({
         where: {
             patientPhone: phone,
@@ -297,7 +278,6 @@ const getOrCreateSession = async (phone) => {
         order: [['createdAt', 'DESC']],
     });
 
-    // No valid session — create a fresh one
     if (!session) {
         session = await Session.create({
             patientPhone: phone,
@@ -314,19 +294,24 @@ const getOrCreateSession = async (phone) => {
 const updateSession = async (session, step, data) => {
     session.step = step;
     session.data = data;
-    session.expiresAt = new Date(Date.now() + 30 * 60 * 1000); // reset 30 min timer
+    session.expiresAt = new Date(Date.now() + 30 * 60 * 1000);
     await session.save();
 };
 
-// ─── PATIENT HELPERS ───────────────────────────────────────────────────────
-const findOrCreatePatient = async (phone) => {
-    let patient = await Patient.findOne({ where: { phone, clinicId: DEFAULT_CLINIC_ID } });
+// ─── Patient helpers ───────────────────────────────────────────────────────
+const findOrCreatePatient = async (fromPhone, name) => {
+    let patient = await Patient.findOne({ where: { phone: fromPhone, clinicId: DEFAULT_CLINIC_ID } });
     if (!patient) {
         patient = await Patient.create({
-            phone,
+            phone: fromPhone,
             clinicId: DEFAULT_CLINIC_ID,
-            name: phone, // placeholder — can be collected in a later step
+            name: name || fromPhone,
         });
+    } else {
+        // Update name if it's a placeholder (phone number or 'Unknown Patient')
+        if (patient.name === patient.phone || patient.name === 'Unknown Patient' || !patient.name) {
+            await patient.update({ name });
+        }
     }
     return patient;
 };
@@ -339,36 +324,33 @@ const getUpcomingAppointment = async (phone) => {
         where: {
             patientId: patient.id,
             status: ['confirmed', 'rescheduled'],
-            scheduledAt: { [Op.gt]: new Date() },
+            appointmentDate: { [Op.gt]: new Date() },
         },
-        order: [['scheduledAt', 'ASC']],
+        order: [['appointmentDate', 'ASC']],
     });
 };
 
-// ─── SLOT HELPERS ──────────────────────────────────────────────────────────
-// For now: returns hardcoded slots minus already-booked ones.
-// Later: read from a clinic_slots table you configure per clinic.
+// ─── Slot helpers ──────────────────────────────────────────────────────────
 const getAvailableSlots = async (dateString) => {
     const allSlots = ['9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'];
 
-    // Find already booked slots on that date
     const booked = await Appointment.findAll({
         include: [{ model: Patient, where: { clinicId: DEFAULT_CLINIC_ID } }],
         where: { status: ['confirmed', 'rescheduled'] },
     });
 
     const bookedTimes = booked
-        .filter(a => new Date(a.scheduledAt).toDateString() === new Date(dateString).toDateString())
-        .map(a => new Date(a.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+        .filter(a => new Date(a.appointmentDate).toDateString() === new Date(dateString).toDateString())
+        .map(a => new Date(a.appointmentDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
 
     return allSlots.filter(s => !bookedTimes.includes(s));
 };
 
-// ─── SAVE MESSAGE TO DB ────────────────────────────────────────────────────
+// ─── Save message to DB ────────────────────────────────────────────────────
 const saveMessage = async (phone, body, direction) => {
     try {
         const patient = await Patient.findOne({ where: { phone, clinicId: DEFAULT_CLINIC_ID } });
-        if (!patient) return; // patient doesn't exist yet — skip logging, they'll be created on booking
+        if (!patient) return;
         await Message.create({
             patientId: patient.id,
             clinicId: DEFAULT_CLINIC_ID,
@@ -381,13 +363,29 @@ const saveMessage = async (phone, body, direction) => {
     }
 };
 
-// ─── DATE/TIME HELPERS ─────────────────────────────────────────────────────
+// ─── Date/time helpers ─────────────────────────────────────────────────────
 const parseDatetime = (dateStr, timeStr) => {
-    // Basic parser — combine date string + time string into a JS Date
-    // e.g. "Monday" + "10:00 AM" → Date object
-    // For production: use a library like day.js or chrono-node
     try {
-        return new Date(`${dateStr} ${timeStr}`);
+        let resolvedDate = new Date();
+        const lower = dateStr.toLowerCase().trim();
+
+        if (lower === 'tomorrow') {
+            resolvedDate = new Date(Date.now() + 86400000);
+        } else if (lower === 'today') {
+            resolvedDate = new Date();
+        } else {
+            const parsed = new Date(dateStr);
+            if (!isNaN(parsed)) resolvedDate = parsed;
+        }
+
+        const [timePart, meridiem] = timeStr.split(' ');
+        let [hours, minutes] = timePart.split(':').map(Number);
+
+        if (meridiem === 'PM' && hours !== 12) hours += 12;
+        if (meridiem === 'AM' && hours === 12) hours = 0;
+
+        resolvedDate.setHours(hours, minutes, 0, 0);
+        return resolvedDate;
     } catch {
         return new Date();
     }
@@ -399,9 +397,9 @@ const formatDate = (date) => {
     });
 };
 
-// ─── Webhook verification (GET) ────────────────────────────────────────────
+// ─── Webhook verification ──────────────────────────────────────────────────
 const verifyWebhook = (req, res) => {
-    const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
+    const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];

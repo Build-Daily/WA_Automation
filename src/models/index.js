@@ -19,13 +19,13 @@ Patient.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
 // Patient has many messages and appointments
 Patient.hasMany(Message, { foreignKey: 'patientId', as: 'messages' });
-Patient.hasMany(Appointment, { foreignKey: 'patientId', as: 'appointments' });
+Patient.hasMany(Appointment, { foreignKey: 'patientId', as: 'Appointments' });
 
 // Message and Appointment belong to Patient and Clinic
 Message.belongsTo(Patient, { foreignKey: 'patientId' });
 Message.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-Appointment.belongsTo(Patient, { foreignKey: 'patientId' });
+Appointment.belongsTo(Patient, { foreignKey: 'patientId', as: 'Patient' });
 Appointment.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
 // Session belongs to Clinic (no Patient FK — we look up by phone directly)

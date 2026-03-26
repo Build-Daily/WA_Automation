@@ -27,7 +27,8 @@ const Appointment = sequelize.define('Appointment', {
             'scheduled',
             'confirmed',
             'completed',
-            'cancelled'
+            'cancelled',
+            'rescheduled'
         ),
         defaultValue: 'scheduled'
     },
